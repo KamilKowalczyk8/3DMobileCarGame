@@ -13,7 +13,7 @@ public class CarController : MonoBehaviour
     [Header("Game Over System")]
     public GameOverManager gameOverManager;
 
-    [Header("Wizualne - Rotacja Modelu (NOWE)")]
+    [Header("Wizualne - Rotacja Modelu")]
     public Transform carModel;
     public float maxSteerAngle = 15f;
     public float rotationSmoothness = 10f;
@@ -35,8 +35,15 @@ public class CarController : MonoBehaviour
     [Header("Ograniczenia")]
     public float laneDistance = 13f;
 
-    private float score = 0f;
+    // --- NOWE: Zmienne do sterowania dotykowego ---
+    [Header("Sterowanie Dotykowe (System)")]
+    private bool moveLeft = false;
+    private bool moveRight = false;
+    private bool moveGas = false;
+    private bool moveBrake = false;
+    // ----------------------------------------------
 
+    private float score = 0f;
     private Rigidbody rb;
     private float moveInput;
     private bool isDead = false;
@@ -53,18 +60,35 @@ public class CarController : MonoBehaviour
 
         if (carModel == null)
         {
-            Debug.LogWarning("UWAGA: Nieypisałeś 'Car Model' w inspektorze!");
+            Debug.LogWarning("UWAGA: Nie przypisałeś 'Car Model' w inspektorze!");
         }
     }
 
     void Update()
     {
+        // --- 1. OBSŁUGA WEJŚCIA (Input) ---
+        // Resetujemy wartości co klatkę
+        moveInput = 0f;
+        float speedInput = 0f;
+
+        // A. Klawiatura (do testów na PC)
         moveInput = Input.GetAxis("Horizontal");
+        speedInput = Input.GetAxis("Vertical");
+
+        // B. Akcelerometr (opcjonalnie - jeśli telefon ma przechylanie)
         if (SystemInfo.supportsAccelerometer && Mathf.Abs(Input.acceleration.x) > 0.1f)
         {
             moveInput += Input.acceleration.x * 2.0f;
         }
 
+        // C. Przyciski ekranowe (Nadpisują wszystko inne)
+        if (moveLeft) moveInput = -1f;
+        if (moveRight) moveInput = 1f;
+
+        if (moveGas) speedInput = 1f;    // 1 oznacza "Gaz do dechy"
+        if (moveBrake) speedInput = -1f; // -1 oznacza "Hamulec"
+
+        // --- 2. ROTACJA MODELU ---
         if (carModel != null && !isDead)
         {
             float targetAngle = moveInput * maxSteerAngle;
@@ -72,6 +96,7 @@ public class CarController : MonoBehaviour
             carModel.localRotation = Quaternion.Lerp(carModel.localRotation, targetRotation, Time.deltaTime * rotationSmoothness);
         }
 
+        // --- 3. UI ---
         if (speedText != null)
         {
             int displaySpeed = Mathf.RoundToInt(forwardSpeed * 3.0f);
@@ -84,6 +109,7 @@ public class CarController : MonoBehaviour
             speedBar.color = Color.Lerp(Color.green, Color.red, forwardSpeed / maxSpeed);
         }
 
+        // --- 4. PUNKTY ---
         if (!isDead)
         {
             float pointsMultiplier = 1.0f;
@@ -102,14 +128,18 @@ public class CarController : MonoBehaviour
 
         if (isDead) return;
 
-        float speedInput = Input.GetAxis("Vertical");
+        // --- 5. FIZYKA PRĘDKOŚCI ---
         float targetSpeed = normalSpeed;
 
-        if (isScraping) targetSpeed = scrapeSpeed;
+        if (isScraping)
+        {
+            targetSpeed = scrapeSpeed;
+        }
         else
         {
-            if (speedInput > 0.1f) targetSpeed = maxSpeed;
-            else if (speedInput < -0.1f) targetSpeed = minSpeed;
+            // Tutaj używamy naszego speedInput (z klawiatury lub przycisków)
+            if (speedInput > 0.1f) targetSpeed = maxSpeed;      // Gaz
+            else if (speedInput < -0.1f) targetSpeed = minSpeed; // Hamulec
         }
 
         float changeRate = isScraping ? accelerationSpeed * 3f : accelerationSpeed;
@@ -120,7 +150,7 @@ public class CarController : MonoBehaviour
     {
         if (isDead)
         {
-            rb.linearVelocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero; // Unity 6 (w starszych użyj rb.velocity)
             return;
         }
 
@@ -159,4 +189,17 @@ public class CarController : MonoBehaviour
             }
         }
     }
+
+    
+    public void SteerLeftDown() { moveLeft = true; }
+    public void SteerLeftUp() { moveLeft = false; }
+
+    public void SteerRightDown() { moveRight = true; }
+    public void SteerRightUp() { moveRight = false; }
+
+    public void GasDown() { moveGas = true; }
+    public void GasUp() { moveGas = false; }
+
+    public void BrakeDown() { moveBrake = true; }
+    public void BrakeUp() { moveBrake = false; }
 }
