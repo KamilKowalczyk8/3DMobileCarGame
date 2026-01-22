@@ -55,7 +55,7 @@ Staramy się trzymać porządek w kodzie:
 
 1.  Sklonuj repozytorium:
     ```bash
-    git clone [https://github.com/TWÓJ-NICK/MobileCarGame.git](https://github.com/TWÓJ-NICK/MobileCarGame.git)
+    git clone [https://github.com/KamilKowalczyk8/MobileCarGame.git](https://github.com/KamilKowalczyk8/MobileCarGame.git)
     ```
 2.  Otwórz **Unity Hub**.
 3.  Kliknij **Add** i wybierz folder z pobranym projektem.
